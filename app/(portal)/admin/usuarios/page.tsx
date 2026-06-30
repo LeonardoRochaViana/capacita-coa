@@ -1,0 +1,22 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import type { EmployeeProfile } from "@/types";
+import { KeyRound, Plus, ShieldCheck } from "lucide-react";
+
+const empty={nome:"",email:"",matricula:"",unidade:"Clementina",setor:"COA",funcao:"",gestor_id:"gestor"};
+
+export default function UsuariosPage(){
+  const [users,setUsers]=useState<EmployeeProfile[]>([]);const [form,setForm]=useState(empty);const [notice,setNotice]=useState("");
+  async function load(){const response=await fetch("/api/users");if(response.ok)setUsers((await response.json()).users);}
+  useEffect(()=>{void load();},[]);
+  async function create(event:React.FormEvent){event.preventDefault();const response=await fetch("/api/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});const data=await response.json();setNotice(response.ok?"Colaborador cadastrado e encaminhado para configuração do gestor.":data.error);if(response.ok){setForm(empty);void load();}}
+  async function setStatus(userId:string,status:EmployeeProfile["status"]){const response=await fetch("/api/users",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId,patch:{status}})});setNotice(response.ok?"Status atualizado.":"Não foi possível atualizar o status.");void load();}
+  async function reset(userId:string){const response=await fetch("/api/users/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId})});const data=await response.json();setNotice(response.ok?`Senha temporária: ${data.temporaryPassword}`:data.error);}
+  return <><PageHeader eyebrow="Administrador" title="Gestão de usuários" description="Cadastre a base do colaborador, acompanhe o status e controle bloqueios e redefinições de senha."/>
+    {notice&&<div className="mb-5 flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 p-4 text-xs font-bold text-leaf"><ShieldCheck size={16}/>{notice}</div>}
+    <div className="grid gap-5 xl:grid-cols-[380px_1fr]"><form onSubmit={create} className="card h-fit space-y-4 p-5"><h2 className="font-bold">Novo colaborador</h2>{([["nome","Nome completo"],["email","E-mail corporativo"],["matricula","Matrícula"],["setor","Setor"],["funcao","Função"]] as const).map(([key,label])=><label key={key} className="block text-xs font-bold">{label}<input type={key==="email"?"email":"text"} required={["nome","setor","funcao"].includes(key)} value={form[key]} onChange={e=>setForm(current=>({...current,[key]:e.target.value}))} className="field mt-2"/></label>)}<label className="block text-xs font-bold">Unidade<select className="field mt-2" value={form.unidade} onChange={e=>setForm(current=>({...current,unidade:e.target.value}))}><option>Clementina</option><option>Queiroz</option></select></label><label className="block text-xs font-bold">Gestor responsável<select className="field mt-2" value={form.gestor_id} onChange={e=>setForm(current=>({...current,gestor_id:e.target.value}))}>{users.filter(item=>item.perfil==="Gestor").map(item=><option key={item.id} value={item.id}>{item.nome}</option>)}{!users.some(item=>item.perfil==="Gestor")&&<option value="gestor">Leonardo Viana</option>}</select></label><button className="btn-primary w-full justify-center"><Plus size={16}/>Cadastrar colaborador</button></form>
+      <section className="card overflow-hidden"><div className="border-b border-line p-5"><h2 className="font-bold">Usuários e acessos</h2><p className="mt-1 text-xs text-gray-500">O Administrador controla o cadastro institucional; a liberação de mesas continua sob responsabilidade da liderança.</p></div><div className="divide-y divide-line">{users.map(item=><article key={item.id} className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><b className="text-sm">{item.nome}</b><p className="mt-1 text-xs text-gray-500">{item.funcao} · {item.unidade} · {item.perfil}</p><span className="mt-2 inline-flex rounded-full bg-mist px-2 py-1 text-[10px] font-bold">{item.status.replaceAll("_"," ")}</span></div><div className="flex flex-wrap gap-2">{item.perfil==="Aluno"&&<><button onClick={()=>setStatus(item.id,item.status==="bloqueado"?"ativo":"bloqueado")} className="btn-secondary text-xs">{item.status==="bloqueado"?"Reativar":"Bloquear"}</button><button onClick={()=>reset(item.id)} className="btn-secondary text-xs"><KeyRound size={14}/>Redefinir senha</button></>}</div></div></article>)}</div></section></div>
+  </>;
+}
