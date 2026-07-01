@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Capacita COA",
-  description: "Portal de Capacitação Operacional do COA",
+  description: "Universidade Interna do COA",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
